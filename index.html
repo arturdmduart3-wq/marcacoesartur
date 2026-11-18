@@ -69,7 +69,32 @@ input:focus,textarea:focus{outline:none;border-color:var(--gold)}
     </div>
     <div class="card"><h2>4. Os seus dados</h2>
       <input id="nome" placeholder="Nome" autocomplete="name">
-      <input id="tel" placeholder="Telemóvel / WhatsApp" inputmode="tel" autocomplete="tel">
+      <div style="display:flex;gap:8px">
+        <select id="pais" style="width:42%">
+          <option value="351" selected>🇵🇹 +351</option>
+          <option value="34">🇪🇸 +34</option>
+          <option value="33">🇫🇷 +33</option>
+          <option value="44">🇬🇧 +44</option>
+          <option value="49">🇩🇪 +49</option>
+          <option value="39">🇮🇹 +39</option>
+          <option value="55">🇧🇷 +55</option>
+          <option value="244">🇦🇴 +244</option>
+          <option value="258">🇲🇿 +258</option>
+          <option value="238">🇨🇻 +238</option>
+          <option value="245">🇬🇼 +245</option>
+          <option value="239">🇸🇹 +239</option>
+          <option value="1">🇺🇸 +1</option>
+          <option value="41">🇨🇭 +41</option>
+          <option value="32">🇧🇪 +32</option>
+          <option value="31">🇳🇱 +31</option>
+          <option value="352">🇱🇺 +352</option>
+          <option value="353">🇮🇪 +353</option>
+          <option value="46">🇸🇪 +46</option>
+          <option value="47">🇳🇴 +47</option>
+          <option value="45">🇩🇰 +45</option>
+        </select>
+        <input id="tel" placeholder="Telemóvel" inputmode="tel" autocomplete="tel-national">
+      </div>
       <textarea id="notas" rows="2" placeholder="Observações (opcional)"></textarea>
       <div id="aviso"></div>
       <button class="btn" id="marcar">Confirmar marcação</button>
@@ -87,8 +112,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--gold)}
 </div>
 
 <div id="gestao" class="wrap hidden"></div>
-
-<script>
+  <script>
 const SUPABASE_URL = 'https://mraczlxnisrlvabtqmqj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ju_hr3kAzsq22e5_5-3VCA_QZ5-Eyvl';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -163,11 +187,14 @@ async function carregarHoras() {
 }
 
 $('marcar').onclick = async () => {
-  const nome = $('nome').value.trim(), tel = $('tel').value.trim();
+  const nome = $('nome').value.trim();
+  const digitos = $('tel').value.replace(/\D/g, '').replace(/^0+/, '');
+  const tel = '+' + $('pais').value + ' ' + digitos;
   const aviso = t => $('aviso').innerHTML = `<div class="msg err">${t}</div>`;
   if (!sel.servico || !sel.data || sel.hora == null) return aviso('Escolha serviço, dia e hora.');
   if (nome.length < 2) return aviso('Indique o seu nome.');
-  if (tel.replace(/\D/g, '').length < 9) return aviso('Indique um telemóvel válido.');
+  if (digitos.length < 6) return aviso('Indique um telemóvel válido.');
+  if ($('pais').value === '351' && digitos.length !== 9) return aviso('Os números portugueses têm 9 dígitos.');
   $('marcar').disabled = true; $('marcar').textContent = 'A confirmar...';
   const r = await db.rpc('criar_marcacao', { p_servico: sel.servico.id, p_data: sel.data, p_inicio: toHHMM(sel.hora), p_nome: nome, p_telefone: tel, p_notas: $('notas').value.trim() || null });
   $('marcar').disabled = false; $('marcar').textContent = 'Confirmar marcação';
@@ -210,8 +237,7 @@ async function painel() {
   Object.keys(porDia).forEach(dia => {
     h += `<div class="card"><h2>${fmtData(dia)}</h2>`;
     porDia[dia].forEach(m => {
-      const tel = m.telefone.replace(/\D/g, '');
-      const num = tel.length === 9 ? '351' + tel : tel;
+      const num = m.telefone.replace(/\D/g, '');
       const conf = `Olá ${m.nome}! A sua marcação de ${m.servicos.nome} no dia ${fmtData(m.data)} às ${m.inicio.slice(0, 5)} está CONFIRMADA. Até já! - Artur Duarte`;
       h += `<div class="svc" style="cursor:default"><span class="meta">${m.inicio.slice(0, 5)}–${m.fim.slice(0, 5)}</span><b>${esc(m.nome)}</b><small>${esc(m.servicos.nome)} • ${esc(m.telefone)}${m.notas ? ' • ' + esc(m.notas) : ''}</small><small>Estado: ${esc(m.estado)}</small><div style="display:flex;gap:8px;margin-top:10px"><a class="btn" style="flex:1;text-align:center;text-decoration:none;padding:10px;margin:0" target="_blank" rel="noopener" href="https://wa.me/${num}?text=${encodeURIComponent(conf)}" onclick="mudar('${m.id}','confirmada')">Confirmar</a><button class="btn ghost" style="flex:1;padding:10px;margin:0" onclick="cancelar('${m.id}')">Cancelar</button></div></div>`;
     });
@@ -225,6 +251,5 @@ async function cancelar(id) { if (confirm('Cancelar esta marcação? O horário 
 
 init();
 </script>
-
 </body>
 </html>
