@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Marcações Artur">
+<title>Marcações - Artur Duarte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0a0a0a;--bg-soft:#141414;--bg-card:#121212;--border:rgba(212,175,55,.18);--border-strong:rgba(212,175,55,.35);--gold:#d4af37;--gold-2:#c9a86c;--gold-light:#f7e9c3;--text:#f5f2ed;--muted:#a19c97;--muted-2:#6b6763}
+*{box-sizing:border-box;font-family:'Manrope',system-ui,sans-serif}
+h1,h2,h3,.serif{font-family:'Cormorant Garamond',serif;font-weight:600}
+body{margin:0;background:var(--bg);color:var(--text);overflow-x:hidden}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 80px}
+header{text-align:center;padding:28px 0 12px}
+header h1{font-size:34px;margin:0;color:var(--gold-light)}
+header p{color:var(--muted);margin:6px 0 0;font-size:14px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px;margin:14px 0}
+.card h2{margin:0 0 12px;font-size:22px;color:var(--gold-light)}
+.svc{display:block;width:100%;text-align:left;background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:14px;margin:8px 0;color:var(--text);cursor:pointer}
+.svc.sel{border-color:var(--gold);background:rgba(212,175,55,.08)}
+.svc b{font-size:16px}.svc small{display:block;color:var(--muted);margin-top:4px}
+.svc .meta{float:right;color:var(--gold);font-weight:600}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cal-head button{background:none;border:1px solid var(--border);color:var(--gold);border-radius:8px;padding:6px 12px;font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.grid .dow{color:var(--muted-2);font-size:12px;padding:4px 0}
+.day{padding:10px 0;border-radius:8px;border:1px solid transparent;background:none;color:var(--text);font-size:14px}
+.day:disabled{color:var(--muted-2);opacity:.4}
+.day.sel{background:var(--gold);color:#000;font-weight:600}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{padding:12px 0;border-radius:10px;border:1px solid var(--border);background:var(--bg-soft);color:var(--text);font-size:15px}
+.slot.sel{background:var(--gold);color:#000;font-weight:600}
+.slot:disabled{opacity:.3;text-decoration:line-through}
+input,textarea,select{width:100%;background:var(--bg-soft);border:1px solid var(--border);border-radius:10px;padding:13px;color:var(--text);font-size:16px;margin:6px 0}
+input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+.btn{width:100%;background:linear-gradient(135deg,#f7e9c3,#d4af37);color:#000;border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:600;margin-top:10px}
+.btn:disabled{opacity:.4}
+.btn.ghost{background:none;border:1px solid var(--border-strong);color:var(--gold)}
+.msg{padding:12px;border-radius:10px;margin:10px 0;font-size:14px}
+.msg.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5}
+.msg.ok{background:rgba(212,175,55,.1);border:1px solid var(--border-strong);color:var(--gold-light)}
+.hint{color:var(--muted);font-size:13px}
+.hidden{display:none}
+.footer{text-align:center;color:var(--muted-2);font-size:12px;margin-top:30px}
+.footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <h1>Artur Duarte</h1>
+    <p>Terapia Manual • Grande Lisboa</p>
+  </header>
+
+  <div id="cliente">
+    <div class="card"><h2>1. Serviço</h2><div id="servicos"></div></div>
+    <div class="card"><h2>2. Dia</h2>
+      <div class="cal-head"><button id="prev">‹</button><b id="mes" class="serif" style="font-size:20px"></b><button id="next">›</button></div>
+      <div class="grid" id="cal"></div>
+      <p class="hint">Atendimento de segunda a sexta.</p>
+    </div>
+    <div class="card"><h2>3. Hora</h2>
+      <div id="horas" class="slots"></div>
+      <p class="hint" id="horasHint">Escolha primeiro o serviço e o dia.</p>
+    </div>
+    <div class="card"><h2>4. Os seus dados</h2>
+      <input id="nome" placeholder="Nome" autocomplete="name">
+      <input id="tel" placeholder="Telemóvel / WhatsApp" inputmode="tel" autocomplete="tel">
+      <textarea id="notas" rows="2" placeholder="Observações (opcional)"></textarea>
+      <div id="aviso"></div>
+      <button class="btn" id="marcar">Confirmar marcação</button>
+    </div>
+  </div>
+
+  <div id="sucesso" class="card hidden">
+    <h2>Marcação registada!</h2>
+    <p id="sucessoTxt"></p>
+    <a class="btn" id="btnZap" style="display:block;text-align:center;text-decoration:none" target="_blank" rel="noopener">Enviar também por WhatsApp</a>
+    <button class="btn ghost" onclick="location.reload()">Nova marcação</button>
+  </div>
+
+  <div class="footer"><a href="#gestao" id="linkGestao">Área de gestão</a></div>
+</div>
+
+<div id="gestao" class="wrap hidden"></div>
+
+<script>
+const SUPABASE_URL = 'https://mraczlxnisrlvabtqmqj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ju_hr3kAzsq22e5_5-3VCA_QZ5-Eyvl';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const ZAP = '351963127932';
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const toMin = t => { const [h, m] = t.split(':'); return +h * 60 + +m; };
+const toHHMM = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const fmtData = s => new Date(s + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let servicos = [], cfg = { hora_inicio: '09:00', hora_fim: '19:00', intervalo_min: 15, dias_semana: [1, 2, 3, 4, 5] };
+let sel = { servico: null, data: null, hora: null };
+let mesAtual = new Date(); mesAtual.setDate(1);
+let ocupadas = [];
+
+async function init() {
+  const [s, d] = await Promise.all([
+    db.from('servicos').select('*').eq('ativo', true).order('ordem'),
+    db.from('definicoes').select('*').eq('id', 1).single()
+  ]);
+  if (s.error) { $('servicos').innerHTML = '<div class="msg err">Não foi possível carregar os serviços. Tente mais tarde.</div>'; return; }
+  servicos = s.data;
+  if (d.data) { cfg = d.data; cfg.hora_inicio = cfg.hora_inicio.slice(0, 5); cfg.hora_fim = cfg.hora_fim.slice(0, 5); }
+  desenharServicos(); desenharCal();
+}
+
+function desenharServicos() {
+  $('servicos').innerHTML = servicos.map(s => `<button class="svc ${sel.servico?.id === s.id ? 'sel' : ''}" data-id="${esc(s.id)}"><span class="meta">${s.preco_eur}€</span><b>${esc(s.nome)}</b><small>${s.duracao_min} min • ${esc(s.descricao)}</small></button>`).join('');
+  document.querySelectorAll('.svc').forEach(b => b.onclick = () => {
+    sel.servico = servicos.find(x => x.id === b.dataset.id); sel.hora = null;
+    desenharServicos(); carregarHoras();
+  });
+}
+
+function desenharCal() {
+  const y = mesAtual.getFullYear(), m = mesAtual.getMonth();
+  $('mes').textContent = mesAtual.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  const primeiro = (new Date(y, m, 1).getDay() + 6) % 7, dias = new Date(y, m + 1, 0).getDate();
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  let h = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map(x => `<div class="dow">${x}</div>`).join('');
+  for (let i = 0; i < primeiro; i++) h += '<div></div>';
+  for (let d = 1; d <= dias; d++) {
+    const dt = new Date(y, m, d), dow = dt.getDay() === 0 ? 7 : dt.getDay();
+    const off = dt < hoje || !cfg.dias_semana.includes(dow);
+    h += `<button class="day ${sel.data === iso(dt) ? 'sel' : ''}" ${off ? 'disabled' : ''} data-d="${iso(dt)}">${d}</button>`;
+  }
+  $('cal').innerHTML = h;
+  document.querySelectorAll('.day').forEach(b => b.onclick = () => { sel.data = b.dataset.d; sel.hora = null; desenharCal(); carregarHoras(); });
+}
+$('prev').onclick = () => { mesAtual.setMonth(mesAtual.getMonth() - 1); desenharCal(); };
+$('next').onclick = () => { mesAtual.setMonth(mesAtual.getMonth() + 1); desenharCal(); };
+
+async function carregarHoras() {
+  if (!sel.servico || !sel.data) { $('horas').innerHTML = ''; $('horasHint').textContent = 'Escolha primeiro o serviço e o dia.'; return; }
+  $('horasHint').textContent = 'A carregar...';
+  const r = await db.rpc('horas_ocupadas', { dia: sel.data });
+  ocupadas = r.error ? [] : r.data.map(o => ({ i: toMin(o.inicio), f: toMin(o.fim) }));
+  const dur = sel.servico.duracao_min, gap = cfg.intervalo_min;
+  const ini = toMin(cfg.hora_inicio), fim = toMin(cfg.hora_fim);
+  const agora = new Date(), eHoje = sel.data === iso(agora), minAgora = agora.getHours() * 60 + agora.getMinutes();
+  let slots = [];
+  for (let t = ini; t + dur <= fim; t += 30) {
+    const livre = !ocupadas.some(o => t < o.f + gap && t + dur + gap > o.i);
+    const passado = eHoje && t <= minAgora;
+    slots.push({ t, ok: livre && !passado });
+  }
+  $('horas').innerHTML = slots.map(s => `<button class="slot ${sel.hora === s.t ? 'sel' : ''}" ${s.ok ? '' : 'disabled'} data-t="${s.t}">${toHHMM(s.t)}</button>`).join('');
+  $('horasHint').textContent = slots.some(s => s.ok) ? 'Sessão de ' + dur + ' min. Toque numa hora livre.' : 'Sem horas livres neste dia.';
+  document.querySelectorAll('.slot').forEach(b => b.onclick = () => { sel.hora = +b.dataset.t; carregarHoras(); });
+}
+
+$('marcar').onclick = async () => {
+  const nome = $('nome').value.trim(), tel = $('tel').value.trim();
+  const aviso = t => $('aviso').innerHTML = `<div class="msg err">${t}</div>`;
+  if (!sel.servico || !sel.data || sel.hora == null) return aviso('Escolha serviço, dia e hora.');
+  if (nome.length < 2) return aviso('Indique o seu nome.');
+  if (tel.replace(/\D/g, '').length < 9) return aviso('Indique um telemóvel válido.');
+  $('marcar').disabled = true; $('marcar').textContent = 'A confirmar...';
+  const r = await db.rpc('criar_marcacao', { p_servico: sel.servico.id, p_data: sel.data, p_inicio: toHHMM(sel.hora), p_nome: nome, p_telefone: tel, p_notas: $('notas').value.trim() || null });
+  $('marcar').disabled = false; $('marcar').textContent = 'Confirmar marcação';
+  if (r.error) { aviso(r.error.message.includes('indispon') ? 'Esse horário acabou de ser ocupado. Escolha outro.' : 'Não foi possível marcar. Tente novamente.'); carregarHoras(); return; }
+  const msg = `🔔 NOVA MARCAÇÃO - ARTUR DUARTE\n\nServiço: ${sel.servico.nome}\nData: ${fmtData(sel.data)}\nHora: ${toHHMM(sel.hora)}\nNome: ${nome}\nTelemóvel: ${tel}\nObs: ${$('notas').value.trim() || '—'}`;
+  $('btnZap').href = `https://wa.me/${ZAP}?text=${encodeURIComponent(msg)}`;
+  $('sucessoTxt').textContent = `${sel.servico.nome}, ${fmtData(sel.data)} às ${toHHMM(sel.hora)}. O horário já está reservado para si.`;
+  $('cliente').classList.add('hidden'); $('sucesso').classList.remove('hidden'); window.scrollTo(0, 0);
+};
+
+/* ---------- GESTAO ---------- */
+$('linkGestao').onclick = e => { e.preventDefault(); abrirGestao(); };
+if (location.hash === '#gestao') setTimeout(abrirGestao, 300);
+
+async function abrirGestao() {
+  $('app').classList.add('hidden'); $('gestao').classList.remove('hidden');
+  const { data } = await db.auth.getSession();
+  data.session ? painel() : loginForm();
+}
+function sair() { $('gestao').classList.add('hidden'); $('app').classList.remove('hidden'); history.replaceState(null, '', location.pathname); }
+
+function loginForm(erro) {
+  $('gestao').innerHTML = `<header><h1>Gestão</h1><p>Área privada</p></header><div class="card"><input id="lemail" type="email" placeholder="Email" autocomplete="username"><input id="lpass" type="password" placeholder="Palavra-passe" autocomplete="current-password">${erro ? `<div class="msg err">${erro}</div>` : ''}<button class="btn" id="entrar">Entrar</button><button class="btn ghost" onclick="sair()">Voltar</button></div>`;
+  $('entrar').onclick = async () => {
+    const r = await db.auth.signInWithPassword({ email: $('lemail').value.trim(), password: $('lpass').value });
+    r.error ? loginForm('Email ou palavra-passe incorretos.') : painel();
+  };
+}
+
+async function painel() {
+  $('gestao').innerHTML = '<header><h1>Marcações</h1><p>A carregar...</p></header>';
+  const hoje = iso(new Date());
+  const r = await db.from('marcacoes').select('*, servicos(nome, preco_eur)').gte('data', hoje).neq('estado', 'cancelada').order('data').order('inicio');
+  if (r.error) return loginForm('Sessão expirada. Entre novamente.');
+  const lista = r.data;
+  const porDia = {};
+  lista.forEach(m => (porDia[m.data] = porDia[m.data] || []).push(m));
+  let h = `<header><h1>Marcações</h1><p>${lista.length} próxima(s)</p></header>`;
+  if (!lista.length) h += '<div class="card"><p class="hint">Ainda não há marcações futuras.</p></div>';
+  Object.keys(porDia).forEach(dia => {
+    h += `<div class="card"><h2>${fmtData(dia)}</h2>`;
+    porDia[dia].forEach(m => {
+      const tel = m.telefone.replace(/\D/g, '');
+      const num = tel.length === 9 ? '351' + tel : tel;
+      const conf = `Olá ${m.nome}! A sua marcação de ${m.servicos.nome} no dia ${fmtData(m.data)} às ${m.inicio.slice(0, 5)} está CONFIRMADA. Até já! - Artur Duarte`;
+      h += `<div class="svc" style="cursor:default"><span class="meta">${m.inicio.slice(0, 5)}–${m.fim.slice(0, 5)}</span><b>${esc(m.nome)}</b><small>${esc(m.servicos.nome)} • ${esc(m.telefone)}${m.notas ? ' • ' + esc(m.notas) : ''}</small><small>Estado: ${esc(m.estado)}</small><div style="display:flex;gap:8px;margin-top:10px"><a class="btn" style="flex:1;text-align:center;text-decoration:none;padding:10px;margin:0" target="_blank" rel="noopener" href="https://wa.me/${num}?text=${encodeURIComponent(conf)}" onclick="mudar('${m.id}','confirmada')">Confirmar</a><button class="btn ghost" style="flex:1;padding:10px;margin:0" onclick="cancelar('${m.id}')">Cancelar</button></div></div>`;
+    });
+    h += '</div>';
+  });
+  h += '<button class="btn ghost" onclick="db.auth.signOut().then(sair)">Terminar sessão</button><button class="btn ghost" onclick="sair()">Voltar ao site</button>';
+  $('gestao').innerHTML = h;
+}
+async function mudar(id, estado) { await db.from('marcacoes').update({ estado }).eq('id', id); setTimeout(painel, 400); }
+async function cancelar(id) { if (confirm('Cancelar esta marcação? O horário fica livre outra vez.')) { await mudar(id, 'cancelada'); } }
+
+init();
+</script>
+
+</body>
+</html>
